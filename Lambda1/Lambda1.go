@@ -141,11 +141,14 @@ func receive(conn *net.TCPConn) {
 	for {
 		buffFrom := 0
 		n, err := conn.Read(buff)
+		fmt.Println("n is", n)
 		if err == io.EOF {
 			fmt.Println(conn.RemoteAddr(), "has disconnect")
+			fmt.Println(err)
 			break
 		} else if err != nil {
 			fmt.Println(conn.RemoteAddr(), "connection error")
+			fmt.Println(err)
 			break
 		}
 
@@ -156,6 +159,7 @@ func receive(conn *net.TCPConn) {
 				frame.lenHeader = binary.BigEndian.Uint32(buff[buffFrom : buffFrom+4])
 				buffFrom = buffFrom + 4
 				fieldFrame = 1
+				fmt.Println("rec case0")
 				goto nextCase0
 			} else {
 				copy(intBuff, buff[buffFrom:n])
@@ -168,7 +172,9 @@ func receive(conn *net.TCPConn) {
 				frame.lenBody = binary.BigEndian.Uint32(buff[buffFrom : buffFrom+4])
 				buffFrom = buffFrom + 4
 				fieldFrame = 2
+				fmt.Println("rec case1")
 				goto nextCase1
+
 			} else {
 				copy(intBuff, buff[buffFrom:n])
 			}
@@ -179,8 +185,9 @@ func receive(conn *net.TCPConn) {
 			if n-buffFrom >= int(frame.lenHeader)-len(frame.header) {
 				frame.header = merge(frame.header, buff[buffFrom:buffFrom+int(frame.lenHeader)])
 				buffFrom = buffFrom + len(frame.header)
+				fmt.Println("len header", len(frame.header))
 				fieldFrame = 3
-				buffFrom = buffFrom + int(frame.lenHeader) - len(frame.header)
+				fmt.Println("rec case2")
 				goto nextCase2
 			} else {
 				frame.header = merge(frame.header, buff[buffFrom:])
@@ -190,13 +197,15 @@ func receive(conn *net.TCPConn) {
 		case 3:
 			// get body
 			if n-buffFrom >= int(frame.lenBody)-len(frame.body) {
-				frame.body = merge(frame.body, buff[buffFrom:buffFrom+int(frame.lenBody)])
-				buffFrom = buffFrom + int(frame.lenBody) - len(frame.body)
-				//frameHandler <- frame
+				frame.body = merge(frame.body, buff[buffFrom:n])
+				buffFrom = buffFrom + len(frame.body)
+				fmt.Println("len header", len(frame.body))
+				fmt.Println("rec case3")
 				fieldFrame = 0
 			} else {
-				frame.body = merge(frame.body, buff[buffFrom:])
+				frame.body = merge(frame.body, buff[:n])
 			}
+
 		}
 		frameHandler <- frame
 	}

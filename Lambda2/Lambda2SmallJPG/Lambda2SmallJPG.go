@@ -14,7 +14,6 @@ import (
 var (
 	cache        map[string][]byte
 	srv          *server
-	reqLambda1   header
 	frameHandler = make(chan *Frame, 100)
 )
 
@@ -151,7 +150,6 @@ func (srv *server) recv() {
 				frame.header = merge(frame.header, srv.buffer[buffFrom:buffFrom+int(frame.lenHeader)])
 				buffFrom = buffFrom + len(frame.header)
 				fieldFrame = 3
-				buffFrom = buffFrom + int(frame.lenHeader) - len(frame.header)
 				goto nextCase2
 			} else {
 				frame.header = merge(frame.header, srv.buffer[buffFrom:])
@@ -161,12 +159,11 @@ func (srv *server) recv() {
 		case 3:
 			// get body
 			if n-buffFrom >= int(frame.lenBody)-len(frame.body) {
-				frame.body = merge(frame.body, srv.buffer[buffFrom:buffFrom+int(frame.lenBody)])
-				buffFrom = buffFrom + int(frame.lenBody) - len(frame.body)
-				//frameHandler <- frame
+				frame.body = merge(frame.body, srv.buffer[buffFrom:n])
+				buffFrom = buffFrom + len(frame.body)
 				fieldFrame = 0
 			} else {
-				frame.body = merge(frame.body, srv.buffer[buffFrom:])
+				frame.body = merge(frame.body, srv.buffer[:n])
 			}
 			frameHandler <- frame
 			srv.ret <- &ret{n, err}
@@ -206,6 +203,7 @@ func HandleRequest() {
 			fmt.Println("start sending file")
 			sendFrame := <-frameHandler
 			sendFrame.body = getKey("1mb.jpg")
+			//sendFrame.body = []byte{1, 2, 3, 4}
 			sendFrame.lenBody = uint32(len(sendFrame.body))
 
 			tcpSend(srv.conn, sendFrame)
@@ -278,6 +276,7 @@ func tcpSend(conn *net.TCPConn, frame *Frame) {
 			fmt.Println(err)
 		}
 		sendCount = 1
+		fmt.Println("send case0")
 		fallthrough
 	case 1:
 		_, err := conn.Write(myBodyLen)
@@ -285,6 +284,7 @@ func tcpSend(conn *net.TCPConn, frame *Frame) {
 			fmt.Println(err)
 		}
 		sendCount = 2
+		fmt.Println("send case1")
 		fallthrough
 	case 2:
 		_, err := conn.Write(frame.header)
@@ -292,12 +292,14 @@ func tcpSend(conn *net.TCPConn, frame *Frame) {
 			fmt.Println(err)
 		}
 		sendCount = 3
+		fmt.Println("send case2")
 		fallthrough
-	case 4:
+	case 3:
 		_, err := conn.Write(frame.body)
 		if err != nil {
 			fmt.Println(err)
 		}
+		fmt.Println("send case3")
 	}
 	fmt.Println("send complete")
 }
