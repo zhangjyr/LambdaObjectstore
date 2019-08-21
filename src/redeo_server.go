@@ -12,20 +12,21 @@ import (
 	"syscall"
 
 	"github.com/wangaoone/LambdaObjectstore/src/proxy"
-	"github.com/wangaoone/LambdaObjectstore/src/proxy/types"
-	"github.com/wangaoone/LambdaObjectstore/src/proxy/global"
 	"github.com/wangaoone/LambdaObjectstore/src/proxy/collector"
+	"github.com/wangaoone/LambdaObjectstore/src/proxy/global"
+	"github.com/wangaoone/LambdaObjectstore/src/proxy/types"
 )
 
 var (
-	replica       = flag.Bool("replica", true, "Enable lambda replica deployment")
-	isPrint       = flag.Bool("isPrint", false, "Enable log printing")
-	prefix        = flag.String("prefix", "log", "log file prefix")
-	log           = &logger.ColorLogger{
+	replica = flag.Bool("replica", true, "Enable lambda replica deployment")
+	isPrint = flag.Bool("isPrint", false, "Enable log printing")
+	prefix  = flag.String("prefix", "log", "log file prefix")
+	num     = flag.Int("num", 14, "number of lambda instances")
+	log     = &logger.ColorLogger{
 		Level: logger.LOG_LEVEL_WARN,
 	}
-	lambdaLis    net.Listener
-	filePath     = "/tmp/pidLog.txt"
+	lambdaLis net.Listener
+	filePath  = "/tmp/pidLog.txt"
 )
 
 func init() {
@@ -69,7 +70,7 @@ func main() {
 	log.Info("Start listening to clients(port 6378) and lambdas(port 6379)")
 	// initial proxy server
 	srv := redeo.NewServer(nil)
-	prxy := proxy.New(*replica)
+	prxy := proxy.New(*replica, *num)
 
 	// config server
 	srv.HandleStreamFunc("set", prxy.HandleSet)
@@ -103,7 +104,7 @@ func main() {
 		for _, node := range global.Stores.All {
 			global.DataCollected.Add(1)
 			// send data command
-			node.C() <- &types.Request{ Cmd: "data" }
+			node.C() <- &types.Request{Cmd: "data"}
 		}
 		log.Info("Waiting data from Lambda")
 		global.DataCollected.Wait()

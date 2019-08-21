@@ -5,11 +5,11 @@ REDBENCH=$GOPATH/src/github.com/wangaoone/redbench
 
 echo $PWD
 
-NUM=$3
 
 function update_lambda_timeout() {
     NAME=$1
     TIME=$2
+    NUM=$3
     echo "updating lambda store timeout"
 #    for i in {0..13}
     for ((i = 1; i <= $NUM; i++)); do
@@ -24,6 +24,7 @@ function update_lambda_timeout() {
 function update_lambda_mem() {
     NAME=$1
     MEM=$2
+    NUM=$3
     echo "updating lambda store mem"
 #    for i in {0..13}
     for ((i = 1; i <= $NUM; i++)); do
@@ -39,7 +40,8 @@ function update_lambda_mem() {
 function start_proxy() {
     echo "running proxy server"
     PREFIX=$1
-    GOMAXPROCS=36 go run $PWD/../src/redeo_server.go -replica=false -isPrint=true -prefix=$PREFIX
+    NUM=$2
+    GOMAXPROCS=36 go run $PWD/../src/redeo_server.go -replica=false -isPrint=true -prefix=$PREFIX -num=$NUM
 }
 
 function bench() {

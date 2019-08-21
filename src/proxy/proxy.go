@@ -31,7 +31,7 @@ type Proxy struct {
 }
 
 // initial lambda group
-func New(replica bool) *Proxy {
+func New(replica bool, num int) *Proxy {
 	p := &Proxy{
 		log: &logger.ColorLogger{
 			Prefix: "Proxy ",
@@ -39,7 +39,7 @@ func New(replica bool) *Proxy {
 			Color: true,
 		},
 		group: &types.Group{
-			All: make([]types.LambdaInstance, NumLambdaClusters),
+			All: make([]types.LambdaInstance, num),
 			MemCounter: 0,
 		},
 		metaMap: hashmap.New(1024),
